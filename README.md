@@ -14,9 +14,29 @@ and CPU vectorization affect the performance of tensor computations.
 - Explore CPU SIMD vectorization
 - Benchmark against PyTorch eager execution and TorchInductor
 
-## Status
+## Current Progress
 
-In development.
+Progress Report 1 focuses on PyTorch integration.
 
-Current milestone: receive and inspect PyTorch FX graphs through a custom
-`torch.compile` backend.
+The current implementation:
+
+1. Defines a small PyTorch model.
+2. Runs the model normally with PyTorch.
+3. Passes the model through `torch.compile`.
+4. Uses a custom backend function.
+5. Receives and prints the FX graph.
+6. Inspects each node in the graph.
+7. Checks that the compiled and eager outputs match.
+
+The test model performs:
+
+```text
+input
+  ↓
+multiply by 2
+  ↓
+add 3
+  ↓
+ReLU
+  ↓
+output
