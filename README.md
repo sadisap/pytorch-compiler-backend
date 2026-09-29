@@ -9,26 +9,29 @@ and CPU vectorization affect the performance of tensor computations.
 
 - Integrate a custom backend with `torch.compile`
 - Inspect and process PyTorch FX computation graphs
-- Generate C++ kernels for a limited set of tensor operations
+- Generate C++ code for a limited set of tensor operations
 - Implement elementwise operator fusion
 - Explore CPU SIMD vectorization
 - Benchmark against PyTorch eager execution and TorchInductor
 
 ## Current Progress
 
-Progress Report 1 focuses on PyTorch integration.
+The project now has a basic end-to-end C++ backend for a small set of
+PyTorch operations.
 
-The current implementation:
+The current pipeline is:
 
-1. Defines a small PyTorch model.
-2. Runs the model normally with PyTorch.
-3. Passes the model through `torch.compile`.
-4. Uses a custom backend function.
-5. Receives and prints the FX graph.
-6. Inspects each node in the graph.
-7. Checks that the compiled and eager outputs match.
+1. Define a small PyTorch model.
+2. Pass the model through `torch.compile`.
+3. Receive the FX graph in the custom backend.
+4. Read the supported operations from the graph.
+5. Generate C++ code for those operations.
+6. Compile the generated C++ into a shared library.
+7. Load and execute the compiled C++ from Python.
+8. Return the result as a PyTorch tensor.
+9. Compare the result with normal PyTorch execution.
 
-The test model performs:
+The current test model performs:
 
 ```text
 input

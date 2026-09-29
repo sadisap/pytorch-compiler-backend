@@ -1,6 +1,6 @@
 import torch
 
-from backend import inspect_backend
+from backend import cpp_backend
 from model import TinyModel
 
 
@@ -8,7 +8,10 @@ def main():
     model = TinyModel()
     model.eval()
 
-    x = torch.tensor([-3.0, -1.0, 0.0, 1.0, 2.0])
+    x = torch.tensor(
+        [-3.0, -1.0, 0.0, 1.0, 2.0],
+        dtype=torch.float32,
+    )
 
     print("Input:")
     print(x)
@@ -17,19 +20,32 @@ def main():
     eager_output = model(x)
     print(eager_output)
 
-    print("\n=== torch.compile with custom backend ===")
+    print("\n=== Custom C++ Backend ===")
+
     compiled_model = torch.compile(
         model,
-        backend=inspect_backend,
+        backend=cpp_backend,
+        dynamic=False,
     )
 
     compiled_output = compiled_model(x)
 
-    print("Compiled output:")
+    print("\nC++ backend output:")
     print(compiled_output)
 
     print("\n=== Correctness Check ===")
-    print("Outputs match:", torch.allclose(eager_output, compiled_output))
+
+    matches = torch.allclose(
+        eager_output,
+        compiled_output,
+    )
+
+    print("Outputs match:", matches)
+
+    if not matches:
+        raise RuntimeError(
+            "C++ backend output does not match PyTorch."
+        )
 
 
 if __name__ == "__main__":
