@@ -14,6 +14,11 @@ and CPU vectorization affect the performance of tensor computations.
 - Explore CPU SIMD vectorization
 - Benchmark against PyTorch eager execution and TorchInductor
 
+## Limitations
+The current backend supports CPU `float32` tensors with one tensor input and one tensor output. The supported operations are multiplication by a scalar, addition by a scalar, and ReLU, arranged in a single chain. The backend can process 1D and multidimensional tensors. Noncontiguous inputs are copied into contiguous memory before execution. Unsupported operations or graph structures are rejected instead of being silently processed.
+
+The correctness tests compare the backend results with normal PyTorch using a relative tolerance of `1e-5` and an absolute tolerance of `1e-6`. The current benchmark measures warmed-up execution latency and C++ compilation time separately. It does not directly measure peak memory usage.
+
 ## Current Progress
 
 The project now has a basic end-to-end C++ backend for a small set of
