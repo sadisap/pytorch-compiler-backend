@@ -6,3 +6,4 @@ __pycache__/
 
 generated/*.dylib
 generated/*.so
+optimization_run.log

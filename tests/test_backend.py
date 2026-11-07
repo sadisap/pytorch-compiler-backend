@@ -1,40 +1,46 @@
-import sys
-from pathlib import Path
 
 import torch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from backend import inspect_backend
-from model import TinyModel
+from src.backend import make_cpp_backend
+from src.model import TinyModel
 
 
 def main():
-    model = TinyModel()
-    model.eval()
+    torch.manual_seed(0)
 
-    compiled_model = torch.compile(
-        model,
-        backend=inspect_backend,
-    )
-
-    test_inputs = [
+    inputs = [
         torch.tensor([-3.0, -1.0, 0.0, 1.0, 2.0]),
         torch.tensor([0.0]),
-        torch.tensor([1.0, 2.0, 3.0]),
         torch.randn(10),
         torch.randn(100),
+        torch.empty(0),
     ]
 
-    for i, x in enumerate(test_inputs, start=1):
-        eager_output = model(x)
-        compiled_output = compiled_model(x)
+    for fuse in (False, True):
+        mode = "FUSED" if fuse else "UNFUSED"
 
-        assert torch.allclose(eager_output, compiled_output)
+        for i, x in enumerate(inputs, start=1):
+            torch._dynamo.reset()
 
-        print(f"Test {i}: PASS")
+            model = TinyModel().eval()
 
-    print("\nAll backend tests passed.")
+            compiled = torch.compile(
+                model,
+                backend=make_cpp_backend(fuse=fuse),
+                dynamic=False,
+                fullgraph=True,
+            )
+
+            expected = model(x)
+            actual = compiled(x)
+
+            torch.testing.assert_close(
+                actual, expected, rtol=1e-5, atol=1e-6
+            )
+
+            print(f"{mode} test {i}: PASS")
+
+    print("\nAll backend correctness checks passed.")
 
 
 if __name__ == "__main__":

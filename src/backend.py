@@ -8,7 +8,7 @@ from pathlib import Path
 
 import torch
 
-from codegen import generate_cpp
+from .codegen import generate_cpp
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -17,17 +17,17 @@ GENERATED_DIR = PROJECT_ROOT / "generated"
 COMPILATION_RECORDS = []
 
 
-def compile_cpp(source_path, library_path):
+def compile_cpp(source_path, library_path, opt_level="O0"):
     system = platform.system()
 
     if system == "Darwin":
         command = [
-            "clang++", "-std=c++17", "-O0", "-dynamiclib",
+            "clang++", "-std=c++17", f"-{opt_level}", "-dynamiclib",
             str(source_path), "-o", str(library_path),
         ]
     elif system == "Linux":
         command = [
-            "g++", "-std=c++17", "-O0", "-shared", "-fPIC",
+            "g++", "-std=c++17", f"-{opt_level}", "-shared", "-fPIC",
             str(source_path), "-o", str(library_path),
         ]
     else:
@@ -40,7 +40,9 @@ def compile_cpp(source_path, library_path):
     return elapsed_ms
 
 
-def make_cpp_backend(fuse=False):
+def make_cpp_backend(fuse=False, opt_level="O0"):
+    if opt_level not in {"O0", "O2", "O3"}:
+        raise ValueError(f"Unsupported optimization level: {opt_level}")
     mode = "fused" if fuse else "unfused"
 
     def cpp_backend(gm, example_inputs):
@@ -72,7 +74,7 @@ def make_cpp_backend(fuse=False):
         print(f"\nGenerated: {source_path}")
         print(cpp_code)
 
-        compilation_ms = compile_cpp(source_path, library_path)
+        compilation_ms = compile_cpp(source_path, library_path, opt_level)
 
         print(f"C++ compilation successful: {compilation_ms:.3f} ms")
 
