@@ -1,7 +1,11 @@
 
 import ctypes
+import hashlib
+import os
 import platform
+import shutil
 import subprocess
+import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -17,25 +21,37 @@ GENERATED_DIR = PROJECT_ROOT / "generated"
 COMPILATION_RECORDS = []
 
 
+
 def compile_cpp(source_path, library_path, opt_level="O0"):
     system = platform.system()
 
     if system == "Darwin":
         command = [
             "clang++", "-std=c++17", f"-{opt_level}", "-dynamiclib",
-            str(source_path), "-o", str(library_path),
         ]
     elif system == "Linux":
         command = [
             "g++", "-std=c++17", f"-{opt_level}", "-shared", "-fPIC",
-            str(source_path), "-o", str(library_path),
         ]
     else:
         raise RuntimeError(f"Unsupported operating system: {system}")
 
-    start = time.perf_counter()
-    subprocess.run(command, check=True, capture_output=True, text=True)
-    elapsed_ms = (time.perf_counter() - start) * 1000
+    # Compile to a private temporary library first.
+    with tempfile.TemporaryDirectory(dir=GENERATED_DIR) as temp_dir:
+        temp_library = Path(temp_dir) / library_path.name
+
+        command += [
+            str(source_path), "-o", str(temp_library)
+        ]
+
+        start = time.perf_counter()
+        subprocess.run(
+            command, check=True, capture_output=True, text=True
+        )
+        elapsed_ms = (time.perf_counter() - start) * 1000
+
+        # Publish only after compilation succeeds.
+        os.replace(temp_library, library_path)
 
     return elapsed_ms
 
@@ -61,22 +77,62 @@ def make_cpp_backend(fuse=False, opt_level="O0"):
 
         GENERATED_DIR.mkdir(parents=True, exist_ok=True)
 
-        source_path = GENERATED_DIR / f"kernel_{mode}.cpp"
+        source_path = GENERATED_DIR / (
+            f"kernel_{mode}_{uuid.uuid4().hex}.cpp"
+        )
 
         extension = ".dylib" if platform.system() == "Darwin" else ".so"
 
-        unique_id = uuid.uuid4().hex
-
-        library_path = GENERATED_DIR / f"kernel_{mode}_{unique_id}{extension}"
-
         cpp_code = generate_cpp(gm, source_path, fuse=fuse)
+
+        system = platform.system()
+        compiler_name = "clang++" if system == "Darwin" else "g++"
+        compiler_path = shutil.which(compiler_name)
+
+        if compiler_path is None:
+            raise RuntimeError(f"Compiler not found: {compiler_name}")
+
+        compiler_version = subprocess.check_output(
+            [compiler_path, "--version"], text=True
+        )
+
+        cache_key = hashlib.sha256(
+            (
+                cpp_code
+                + "|"
+                + opt_level
+                + "|"
+                + system
+                + "|"
+                + platform.machine()
+                + "|"
+                + compiler_path
+                + "|"
+                + compiler_version
+            ).encode("utf-8")
+        ).hexdigest()[:16]
+
+        library_path = GENERATED_DIR / (
+            f"kernel_{mode}_{cache_key}{extension}"
+        )
+
+        cached_source_path = GENERATED_DIR / (
+            f"kernel_{mode}_{cache_key}.cpp"
+        )
+
+        cached_source_path.write_text(cpp_code)
 
         print(f"\nGenerated: {source_path}")
         print(cpp_code)
 
-        compilation_ms = compile_cpp(source_path, library_path, opt_level)
-
-        print(f"C++ compilation successful: {compilation_ms:.3f} ms")
+        if library_path.exists():
+            compilation_ms = 0.0
+            print(f"CACHE HIT: {library_path.name}")
+        else:
+            compilation_ms = compile_cpp(
+                cached_source_path, library_path, opt_level
+            )
+            print(f"CACHE MISS: compiled in {compilation_ms:.3f} ms")
 
         COMPILATION_RECORDS.append({
             "mode": mode,

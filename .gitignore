@@ -17,3 +17,8 @@ __pycache__/
 
 # Generated assembly
 results/assembly/*.s
+
+# Compiler cache and generated temporary files
+generated/kernel_*_*.cpp
+generated/kernel_*.dylib
+generated/kernel_*.so

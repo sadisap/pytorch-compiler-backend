@@ -1,50 +1,36 @@
-# PyTorch Compiler Backend
+# Building a Tiny PyTorch Compiler Backend
 
-A small custom CPU compiler backend for PyTorch inference.
+I built this project because I wanted to understand what actually happens behind `torch.compile`. Rather than just reading about compilers, I wanted to build something myself and experiment with how different optimizations affect performance.
 
-The project explores how compiler optimizations such as operator fusion
-and CPU vectorization affect the performance of tensor computations.
+The backend takes PyTorch FX graphs, generates C++ code, compiles it using Clang or GCC, and executes the resulting kernels on CPU tensors.
 
-## Goals
+## What I built and learned
 
-- Integrate a custom backend with `torch.compile`
-- Inspect and process PyTorch FX computation graphs
-- Generate C++ code for a limited set of tensor operations
-- Implement elementwise operator fusion
-- Explore CPU SIMD vectorization
-- Benchmark against PyTorch eager execution and TorchInductor
+I started with a basic working backend, then added **operator fusion**, experimented with compiler optimization levels (`-O0`, `-O2`, `-O3`), and implemented compilation caching. I also wrote correctness tests covering edge cases and concurrent execution.
 
-## Limitations
-The current backend supports CPU `float32` tensors with one tensor input and one tensor output. The supported operations are multiplication by a scalar, addition by a scalar, and ReLU, arranged in a single chain. The backend can process 1D and multidimensional tensors. Noncontiguous inputs are copied into contiguous memory before execution. Unsupported operations or graph structures are rejected instead of being silently processed.
+I benchmarked **96 configurations per run**, comparing fused and unfused execution across different workloads and tensor sizes. For a five-operation chain on one million elements, fusion achieved approximately **6.4–6.8× speedup** at `-O3` across two runs.
 
-The correctness tests compare the backend results with normal PyTorch using a relative tolerance of `1e-5` and an absolute tolerance of `1e-6`. The current benchmark measures warmed-up execution latency and C++ compilation time separately. It does not directly measure peak memory usage.
+![Benchmark results](results/optimization_speedups.png)
 
-## Current Progress
+One of my favorite parts was inspecting the generated ARM assembly and vectorization reports. Both implementations used SIMD, but fusion reduced five loops to one and avoided unnecessary intermediate arrays. It was interesting to connect the benchmark results to what was actually happening at the compiler level.
 
-The project now has a basic end-to-end C++ backend for a small set of
-PyTorch operations.
+## Running the project
 
-The current pipeline is:
+Requires Python, PyTorch, pytest, and a C++17 compiler.
 
-1. Define a small PyTorch model.
-2. Pass the model through `torch.compile`.
-3. Receive the FX graph in the custom backend.
-4. Read the supported operations from the graph.
-5. Generate C++ code for those operations.
-6. Compile the generated C++ into a shared library.
-7. Load and execute the compiled C++ from Python.
-8. Return the result as a PyTorch tensor.
-9. Compare the result with normal PyTorch execution.
+```bash
+pip install -r requirements.txt
+pip install pytest
 
-The current test model performs:
+# Run tests
+PYTHONPATH=. python3 -m pytest tests/ -q
 
-```text
-input
-  ↓
-multiply by 2
-  ↓
-add 3
-  ↓
-ReLU
-  ↓
-output
+# Run benchmarks
+PYTHONPATH=. python3 benchmarks/benchmark_optimization.py
+```
+
+## Scope and documentation
+
+This is a small learning compiler supporting CPU `float32` tensors and linear chains of scalar multiplication, addition, and ReLU. Benchmarks include Python overhead, and memory savings are estimated rather than directly measured.
+
+I documented the experiments, methodology, and limitations in [RESULTS.md](RESULTS.md).
