@@ -1,7 +1,7 @@
 
 import torch
 
-from backend import make_cpp_backend
+from src.backend import make_cpp_backend
 from model import TinyModel
 
 

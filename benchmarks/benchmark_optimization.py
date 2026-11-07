@@ -50,7 +50,7 @@ ITERATIONS = 50
 RESULTS_PATH = (
     Path(__file__).resolve().parents[1]
     / "results"
-    / "optimization_results.csv"
+    / "optimization_results_run2.csv"
 )
 
 

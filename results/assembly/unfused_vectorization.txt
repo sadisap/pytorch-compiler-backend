@@ -1,0 +1,15 @@
+generated/kernel_unfused.cpp:11:5: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+   11 |     for (std::size_t i = 0; i < n; ++i) {
+      |     ^
+generated/kernel_unfused.cpp:15:5: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+   15 |     for (std::size_t i = 0; i < n; ++i) {
+      |     ^
+generated/kernel_unfused.cpp:19:5: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+   19 |     for (std::size_t i = 0; i < n; ++i) {
+      |     ^
+generated/kernel_unfused.cpp:23:5: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+   23 |     for (std::size_t i = 0; i < n; ++i) {
+      |     ^
+generated/kernel_unfused.cpp:27:5: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+   27 |     for (std::size_t i = 0; i < n; ++i) {
+      |     ^

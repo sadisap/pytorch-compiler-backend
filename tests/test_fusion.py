@@ -7,7 +7,7 @@ from torch import nn
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from backend import make_cpp_backend
+from src.backend import make_cpp_backend
 from model import TinyModel
 
 

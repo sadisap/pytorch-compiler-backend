@@ -11,7 +11,7 @@ sys.path.insert(
     ),
 )
 
-from backend import cpp_backend
+from src.backend import cpp_backend
 from model import TinyModel
 
 
